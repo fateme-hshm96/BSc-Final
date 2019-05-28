@@ -1,5 +1,6 @@
 ﻿  LOF.cpp
 f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(49): warning C4018: '<': signed/unsigned mismatch
 f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(54): warning C4018: '<': signed/unsigned mismatch
+  LINK : F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.exe not found or not built by the last incremental link; performing full link
   LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.exe
   LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.pdb (Partial PDB)
