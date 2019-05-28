@@ -15,6 +15,14 @@ struct Point {
 	vector<Point> neighborhood;
 };
 
+bool compareTwoPoints(Point a, Point b){
+	return a.dist < b.dist;
+}
+
+void sortDataset(vector<Point> *dataset) {
+	sort(dataset->begin(), dataset->end(), compareTwoPoints);
+}
+
 int main() {
 	int K = 5;
 	vector<Point> dataset;
@@ -36,7 +44,14 @@ int main() {
 		Point p;
 		p.x = x;
 		p.y = y;
+		p.dist = x * y + 10; //just to test sort function
 		dataset.push_back(p);
+	}
+
+	sortDataset(&dataset);
+
+	for (Point p : dataset) {
+		printf("%f\n", p.dist);
 	}
 	printf("size: %d\n", dataset.size());
 	system("pause");
