@@ -23,6 +23,43 @@ void sortDataset(vector<Point> *dataset) {
 	sort(dataset->begin(), dataset->end(), compareTwoPoints);
 }
 
+double manhattanDist(Point a, Point b) {
+	return abs(a.x - b.x) + abs(a.y - b.y);
+}
+
+double euclideanDist(Point a, Point b) {
+	return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+}
+
+double kDistanse(vector<Point> *dataset, Point *p, int K) {
+	double dist;
+
+	for (auto& o : *dataset) {	// find the distnace of each point in dataset with point p
+		dist = manhattanDist(o, *p);
+		//dist = euclideanDist(o, *p);
+		o.dist = dist;
+	}
+
+	sortDataset(dataset);
+
+	double kDist = dataset->at(K - 1).dist;
+	p->kDist = kDist;
+
+	p->neighborhood.clear();
+	for (int i = 0; i < K && i < dataset->size(); i++) {
+		p->neighborhood.push_back((dataset->at(i)));
+	}
+
+	int ii = K;
+	while (dataset->at(ii).dist == kDist && ii < dataset->size()) {
+		p->neighborhood.push_back(dataset->at(ii));
+		ii++;
+	}
+
+	return kDist;
+}
+
+
 int main() {
 	int K = 5;
 	vector<Point> dataset;
@@ -44,15 +81,17 @@ int main() {
 		Point p;
 		p.x = x;
 		p.y = y;
-		p.dist = x * y + 10; //just to test sort function
 		dataset.push_back(p);
 	}
 
-	sortDataset(&dataset);
-
-	for (Point p : dataset) {
-		printf("%f\n", p.dist);
-	}
 	printf("size: %d\n", dataset.size());
+
+	Point p;
+	p.x = 3;
+	p.y = 4;
+
+	double kDistP = kDistanse(&dataset, &p, K);
+	printf("kDistP: %f\n", kDistP);
+
 	system("pause");
 }
