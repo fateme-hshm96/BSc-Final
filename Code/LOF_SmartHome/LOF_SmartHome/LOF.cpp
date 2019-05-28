@@ -59,6 +59,21 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 	return kDist;
 }
 
+double reachDist(Point p, Point o) {
+	//return max(o.kDist, euclideanDist(p, o));
+	return max(o.kDist, manhattanDist(p, o));
+}
+
+double localReachabilityDensity(vector<Point> *dataset, Point *p) {
+
+	double sigmaRD = 0;
+
+	for (auto& o : p->neighborhood)
+		sigmaRD += reachDist(*p, o);
+
+	return 1.0 / (sigmaRD / (double)(p->neighborhood.size()));
+}
+
 
 int main() {
 	int K = 5;
@@ -87,11 +102,14 @@ int main() {
 	printf("size: %d\n", dataset.size());
 
 	Point p;
-	p.x = 3;
-	p.y = 4;
+	p.x = 1.3;
+	p.y = 11;
 
 	double kDistP = kDistanse(&dataset, &p, K);
 	printf("kDistP: %f\n", kDistP);
+
+	double LRD = localReachabilityDensity(&dataset, &p);
+	printf("LRD: %f\n", LRD);
 
 	system("pause");
 }
