@@ -34,12 +34,12 @@ double euclideanDist(Point a, Point b) {
 }
 
 double kDistanse(vector<Point> *dataset, Point *p, int K) {
-	if (p->flag)
+	if (p->flag)	/// k-distance for this point has been already calculated
 		return p->kDist;
 
 	double dist;
 
-	for (auto& o : *dataset) {	// find the distnace of each point in dataset with point p
+	for (auto& o : *dataset) {	/// find the distnace of each point in dataset with point p
 		dist = manhattanDist(o, *p);
 		//dist = euclideanDist(o, *p);
 		o.dist = dist;
@@ -73,7 +73,10 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 
 double reachDist(Point p, Point o) {
 	//return max(o.kDist, euclideanDist(p, o));
-	printf("reachDist: pid: %d , oid: %d - okdist: %f , opdist: %f\n", p.id, o.id, o.kDist, manhattanDist(p, o));
+
+	//printf("reachDist: pid: %d , oid: %d - okdist: %f , opdist: %f\n",
+		//p.id, o.id, o.kDist, manhattanDist(p, o));
+
 	return max(o.kDist, manhattanDist(p, o));
 }
 
@@ -87,28 +90,33 @@ double localReachabilityDensity(vector<Point> *dataset, Point *p, int K) {
 		sigmaRD += rd;
 	}
 
-	printf("LRD: sigmaRD: %f, size: %d, sigmaRD/size: %f, 1/(sigmaRD/size): %f\n", sigmaRD, p->neighborhood.size(),
-		(sigmaRD / p->neighborhood.size()), 1.0 / (sigmaRD / p->neighborhood.size()));
+	printf("LRD: sigmaRD: %f, size: %d, sigmaRD/size: %f, 1/(sigmaRD/size): %f\n",
+		sigmaRD, p->neighborhood.size(), (sigmaRD / p->neighborhood.size()),
+		1.0 / (sigmaRD / p->neighborhood.size()));
+
 	return 1.0 / (sigmaRD / p->neighborhood.size());
 }
 
 double LOF(vector<Point> *dataset, Point *p, int K) {
-	//// for objects deep inside a cluster, their LOFs are close to 1 
-	kDistanse(dataset, p, K);
+	//// for objects deep inside a cluster, their LOFs are close to 1 ////
 
-	for (auto& n1 : p->neighborhood) {
+	kDistanse(dataset, p, K);			/// k-distance for p
+
+	for (auto& n1 : p->neighborhood) {	/// k-distance for p's neighbors
 		kDistanse(dataset, &n1, K);
 	}
-	for (auto& n1 : p->neighborhood) {
-		for (auto& n2 : n1.neighborhood) {
-			kDistanse(dataset, &n2, K);
+
+	for (auto& n2 : p->neighborhood) {	/// k-distance for neighbors of p's neighbors
+		for (auto& n1 : n2.neighborhood) {
+			kDistanse(dataset, &n1, K);
 		}
 	}
+
+	
 	double lrdP = localReachabilityDensity(dataset, p, K);
 
 	double sigmaLRDneigh = 0;
 	for (auto& o : p->neighborhood) {
-		kDistanse(dataset, &o, K);
 		sigmaLRDneigh += localReachabilityDensity(dataset, &o, K);
 	}
 
@@ -119,19 +127,45 @@ double LOF(vector<Point> *dataset, Point *p, int K) {
 	return  ((sigmaLRDneigh / lrdP) / (double)(p->neighborhood.size()));
 }
 
-int main(int argc, char *argv[]) {
+void LOFBounds(vector<Point> *dataset, Point *p, int K) {
 
-	int par_rank, par_size;
+	for (auto& n3 : p->neighborhood) {	/// k-distance for neighbors of neighbors of p's neighbors
+		for (auto& n2 : n3.neighborhood) {
+			for (auto& n1 : n2.neighborhood) {
+				kDistanse(dataset, &n1, K);
+			}
+		}
+	}
 
-	//// Init MPI 
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &par_rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &par_size);
+	double directMin = 10000, directMax = 0.0001, rd;
+	double indirectMin = 10000, indirectMax = 0.0001;
 
-	int K = 6;
-	vector<Point> dataset;
+	for (auto& n1 : p->neighborhood) {
+		rd = reachDist(*p, n1);
 
-	//// read .csv file
+		if (rd < directMin)
+			directMin = rd;
+
+		if (rd > directMax)
+			directMax = rd;
+	}
+
+	for (auto& n1 : p->neighborhood) {
+		for (auto& n2 : n1.neighborhood) {
+			rd = reachDist(n1, n2);
+
+			if (rd < indirectMin)
+				indirectMin = rd;
+
+			if (rd > indirectMax)
+				indirectMax = rd;
+		}
+	}
+	printf("\nmin: %f, max: %f\n", directMin / indirectMax, directMax / indirectMin);
+}
+
+void readCSV(vector<Point> *dataset) {
+	//// read .csv file ////
 	ifstream  data;
 	data.open("test.csv", ios::in);
 
@@ -148,44 +182,45 @@ int main(int argc, char *argv[]) {
 		Point p;
 		p.x = x * 100;		p.y = y * 100;
 		p.id = id++;		p.flag = false;
-		dataset.push_back(p);
+		(*dataset).push_back(p);
 
 		Point p1;
 		p1.x = x * 100 + 50;		p1.y = y * 100 + 50;
 		p1.id = id++;		p1.flag = false;
-		dataset.push_back(p1);
+		(*dataset).push_back(p1);
 
 		Point p2;
 		p2.x = x * 200 + 40;		p2.y = y * 200 + 40;
 		p2.id = id++;		p2.flag = false;
-		dataset.push_back(p2);
+		(*dataset).push_back(p2);
 
 		Point p3;
 		p3.x = x * 200;		p3.y = y * 200;
 		p3.id = id++;		p3.flag = false;
-		dataset.push_back(p3);
+		(*dataset).push_back(p3);
 	}
 
-	printf("size: %d\n", dataset.size());
+}
+
+int main(int argc, char *argv[]) {
+
+	int K = 5;
+	vector<Point> dataset;
+
+	readCSV(&dataset);
+	printf("dataset size: %d\n", dataset.size());
 
 	Point p;
-	p.x = 1 * dataset.at(2).x + 10;	p.y = 1 * dataset.at(2).y + 10;
-	p.flag = false;					p.id = 1188;
-
-
-	//double kDistP = kDistanse(&dataset, &p, K);
-	//printf("kDistP: %f\n", kDistP);
-
-	//double LRD = localReachabilityDensity(&dataset, &p, K);
-	//printf("LRD: %f\n", LRD);
+	p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
+	p.flag = false;						p.id = 1188;
 
 	double lof = LOF(&dataset, &p, K);
-	printf("LOF: %f\n", lof);
+	printf("\nLOF: %f\n", lof);
+
+	//LOFBounds(&dataset, &p, K);
 
 	system("pause");
 
-	//// Finalize MPI 
-	MPI_Finalize();
 
 	return 0;
 }
