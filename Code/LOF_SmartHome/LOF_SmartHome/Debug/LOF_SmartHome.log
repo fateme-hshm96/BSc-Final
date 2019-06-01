@@ -1,6 +1,8 @@
 ﻿  LOF.cpp
-f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(49): warning C4018: '<': signed/unsigned mismatch
-f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(54): warning C4018: '<': signed/unsigned mismatch
-  LINK : F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.exe not found or not built by the last incremental link; performing full link
-  LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.exe
-  LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.pdb (Partial PDB)
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(57): warning C4018: '<': signed/unsigned mismatch
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(62): warning C4018: '<': signed/unsigned mismatch
+LOF.obj : error LNK2019: unresolved external symbol _MPI_Comm_size@8 referenced in function _main
+LOF.obj : error LNK2019: unresolved external symbol _MPI_Comm_rank@8 referenced in function _main
+LOF.obj : error LNK2019: unresolved external symbol _MPI_Init@8 referenced in function _main
+C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64\msmpi.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'X86'
+F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\Debug\LOF_SmartHome.exe : fatal error LNK1120: 3 unresolved externals

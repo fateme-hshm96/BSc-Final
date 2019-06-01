@@ -1,0 +1,7 @@
+﻿  LOF.cpp
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(90): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 2 has type 'unsigned __int64'
+  f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(90): note: consider using '%zd' in the format string
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(169): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
+  f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(169): note: consider using '%zd' in the format string
+  LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\x64\Debug\LOF_SmartHome.exe
+  LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\x64\Debug\LOF_SmartHome.pdb (Partial PDB)
