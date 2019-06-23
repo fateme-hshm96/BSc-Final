@@ -204,23 +204,43 @@ void readCSV(vector<Point> *dataset) {
 
 int main(int argc, char *argv[]) {
 
+	/// Initialize the MPI environment ///
+	MPI_Init(NULL, NULL);
+
+	/// Get the number of processes ///
+	int world_size;
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+	/// Get the rank of the process ///
+	int world_rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
 	int K = 5;
 	vector<Point> dataset;
+//	Point p;
 
-	readCSV(&dataset);
-	printf("dataset size: %d\n", dataset.size());
+	if (world_rank == 0) {
+		readCSV(&dataset);
 
-	Point p;
-	p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
-	p.flag = false;						p.id = 1188;
+		printf("dataset size: %d\n", dataset.size());
 
-	double lof = LOF(&dataset, &p, K);
-	printf("\nLOF: %f\n", lof);
+	//	p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
+	//	p.flag = false;						p.id = 1188;
+	}
+
+	//double lof = LOF(&dataset, &p, K);
+	//printf("\nLOF: %f\n", lof);
 
 	//LOFBounds(&dataset, &p, K);
+	
 
-	system("pause");
+	printf("Hello world from rank %d out of %d processors\n", world_rank, world_size);
 
+
+	//system("pause");
+
+	/// Finalize the MPI environment. ///
+	MPI_Finalize();
 
 	return 0;
 }
