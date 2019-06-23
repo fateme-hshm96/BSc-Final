@@ -1,7 +1,7 @@
 ﻿  LOF.cpp
-f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(93): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 2 has type 'unsigned __int64'
-  f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(93): note: consider using '%zd' in the format string
-f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(211): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'unsigned __int64'
-  f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(211): note: consider using '%zd' in the format string
-  LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\x64\Debug\LOF_SmartHome.exe
-  LOF_SmartHome.vcxproj -> F:\Fatemeh\UNI\BScFinal\Project\BSc-Final\Code\LOF_SmartHome\x64\Debug\LOF_SmartHome.pdb (Partial PDB)
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(91): warning C4477: 'printf' : format string '%d' requires an argument of type 'int', but variadic argument 2 has type 'unsigned __int64'
+  f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(91): note: consider using '%zd' in the format string
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(185): warning C4477: 'sscanf' : format string '%f' requires an argument of type 'float *', but variadic argument 1 has type 'double'
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(185): warning C4477: 'sscanf' : format string '%f' requires an argument of type 'float *', but variadic argument 2 has type 'double'
+f:\fatemeh\uni\bscfinal\project\bsc-final\code\lof_smarthome\lof_smarthome\lof.cpp(249): error C4996: 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _strdup. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(552): note: see declaration of 'strdup'

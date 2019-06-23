@@ -6,8 +6,6 @@
 #include <string>
 #include <mpi.h>
 
-//#include "gnuplot-iostream.h"
-
 using namespace std;
 
 struct Point {
@@ -111,8 +109,7 @@ double LOF(vector<Point> *dataset, Point *p, int K) {
 			kDistanse(dataset, &n1, K);
 		}
 	}
-
-	
+		
 	double lrdP = localReachabilityDensity(dataset, p, K);
 
 	double sigmaLRDneigh = 0;
@@ -164,14 +161,39 @@ void LOFBounds(vector<Point> *dataset, Point *p, int K) {
 	printf("\nmin: %f, max: %f\n", directMin / indirectMax, directMax / indirectMin);
 }
 
+void readFile() {
+	FILE *file;
+	file = fopen("test.csv", "r");
+
+	if (file == NULL) {
+		printf("no file to open \n");
+		return;
+	}
+	char c = fgetc(file);
+	printf("%c\n", c);
+}
+
 void readCSV(vector<Point> *dataset) {
-	//// read .csv file ////
+	//// read .csv dataset file ////
+	float x, y;
+
+	FILE *fp = fopen("test.csv", "r");
+	if (fp) {
+		char linee[100];
+		int i = 0;
+		while (fgets(linee, 100, fp)) {
+			sscanf(linee, "%f,%f", x, y);
+			printf("%s\n", linee);
+		}
+	}
+
 	ifstream  data;
 	data.open("test.csv", ios::in);
 
-	vector<vector<string> > dataList;
+	vector<vector<string>> dataList;
 	string line;
 	int id = 0;
+	
 	while (getline(data, line)) {
 
 		string token = line.substr(0, line.find(','));
@@ -198,29 +220,38 @@ void readCSV(vector<Point> *dataset) {
 		p3.x = x * 200;		p3.y = y * 200;
 		p3.id = id++;		p3.flag = false;
 		(*dataset).push_back(p3);
+		printf("%f - %f\n", p.x, p.y);
 	}
-
+	printf("done reading file\n");
 }
+
+const char* getfield(char* line, int num)
+{
+	const char* tok;
+	for (tok = strtok(line, ";");
+		tok && *tok;
+		tok = strtok(NULL, ";\n"))
+	{
+		if (!--num)
+			return tok;
+	}
+	return NULL;
+}
+
 
 int main(int argc, char *argv[]) {
 
-	int K = 5;
-	vector<Point> dataset;
+	FILE* stream = fopen("input", "r");
 
-	readCSV(&dataset);
-	printf("dataset size: %d\n", dataset.size());
-
-	Point p;
-	p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
-	p.flag = false;						p.id = 1188;
-
-	double lof = LOF(&dataset, &p, K);
-	printf("\nLOF: %f\n", lof);
-
-	//LOFBounds(&dataset, &p, K);
-
+	char line[1024];
+	while (fgets(line, 1024, stream))
+	{
+		char* tmp = strdup(line);
+		printf("Field 3 would be %s\n", getfield(tmp, 3));
+		// NOTE strtok clobbers tmp
+		free(tmp);
+	}
+	
 	system("pause");
-
-
 	return 0;
 }
