@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_DEPRECATE
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -163,6 +165,26 @@ void LOFBounds(vector<Point> *dataset, Point *p, int K) {
 	}
 	printf("\nmin: %f, max: %f\n", directMin / indirectMax, directMax / indirectMin);
 }
+void readCSV2(vector<Point> *dataset) {
+	FILE *fp;
+	fp = fopen("test.csv", "r");
+	
+	int id = 0;
+	char line[100];
+	while (fscanf(fp, "%s", &line) != -1) {
+		char *x = strtok(line, ",");
+		char *y = strtok(NULL, ",");
+
+		Point p;
+		p.x = atof(x);	p.y = atof(y);
+		p.id = id++;
+		p.flag = false;
+		dataset->push_back(p);
+
+		//printf("%s, %s\n", x, y);
+		printf("%f, %f\n", p.x, p.y);
+	}
+}
 
 void readCSV(vector<Point> *dataset) {
 	//// read .csv file ////
@@ -205,7 +227,7 @@ void readCSV(vector<Point> *dataset) {
 int main(int argc, char *argv[]) {
 
 	/// Initialize the MPI environment ///
-	MPI_Init(NULL, NULL);
+	MPI_Init(&argc, &argv);
 
 	/// Get the number of processes ///
 	int world_size;
@@ -217,15 +239,17 @@ int main(int argc, char *argv[]) {
 
 	int K = 5;
 	vector<Point> dataset;
-//	Point p;
+	Point p;
+	p.x = 0;		p.y = 0;
+	p.flag = false;	p.id = 121212;
 
 	if (world_rank == 0) {
-		readCSV(&dataset);
+		readCSV2(&dataset);
 
 		printf("dataset size: %d\n", dataset.size());
 
-	//	p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
-	//	p.flag = false;						p.id = 1188;
+		p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
+		p.flag = false;						p.id = 1188;
 	}
 
 	//double lof = LOF(&dataset, &p, K);
