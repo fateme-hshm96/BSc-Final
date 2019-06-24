@@ -1,13 +1,9 @@
-Code/LOF_SmartHome/LOF_SmartHome.VC.db
-Code/LOF_SmartHome/LOF_SmartHome.VC.db
-Code/LOF_SmartHome/LOF_SmartHome.VC.VC.opendb
-Code/LOF_SmartHome/LOF_SmartHome.VC.db
-
+*.opendb
 *.db
-Code/LOF_SmartHome/.vs/LOF_SmartHome/v14/.suo
+*.suo
 *.obj
 *.tlog
 *.idb
 *.pdb
-Code/LOF_SmartHome/x64/Debug/LOF_SmartHome.ilk
+*.ilk
 *.pdb
