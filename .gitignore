@@ -8,3 +8,5 @@
 *.ilk
 *.pdb
 *.db
+*.log
+*.tlog
