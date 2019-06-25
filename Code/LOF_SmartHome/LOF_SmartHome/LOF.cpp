@@ -34,6 +34,8 @@ double euclideanDist(Point a, Point b) {
 }
 
 double kDistanse(vector<Point> *dataset, Point *p, int K) {
+	/// compute-intensive step of the LOF algorithm ///
+
 	if (p->flag)	/// k-distance for this point has been already calculated
 		return p->kDist;
 
@@ -62,9 +64,9 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 	}
 
 	//printf("p(%d) neighbors:\n\n", p->id);
-	for (auto o : p->neighborhood) {
+	//for (auto o : p->neighborhood) {
 		//printf("%d\n", o.id);
-	}
+	//}
 
 	p->flag = true;
 
@@ -183,21 +185,6 @@ void readCSV(vector<Point> *dataset, char* file_name) {
 		p.x = x * 100;		p.y = y * 100;
 		p.id = id++;		p.flag = false;
 		(*dataset).push_back(p);
-
-		Point p1;
-		p1.x = x * 100 + 50;		p1.y = y * 100 + 50;
-		p1.id = id++;		p1.flag = false;
-		(*dataset).push_back(p1);
-
-		Point p2;
-		p2.x = x * 200 + 40;		p2.y = y * 200 + 40;
-		p2.id = id++;		p2.flag = false;
-		(*dataset).push_back(p2);
-
-		Point p3;
-		p3.x = x * 200;		p3.y = y * 200;
-		p3.id = id++;		p3.flag = false;
-		(*dataset).push_back(p3);
 	}
 
 }
@@ -239,6 +226,28 @@ int main(int argc, char *argv[]) {
 	printf("Hello world from rank %d out of %d processors\n", world_rank, world_size);
 
 	//system("pause");
+
+	int token;
+	if (world_rank != 0) {
+		MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0,
+			MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		printf("Process %d received token %d from process %d\n",
+			world_rank, token, world_rank - 1);
+	}
+	else {
+		// Set the token's value if you are process 0
+		token = -1;
+	}
+	MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size,
+		0, MPI_COMM_WORLD);
+
+	// Now process 0 can receive from the last process.
+	if (world_rank == 0) {
+		MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0,
+			MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		printf("Process %d received token %d from process %d\n",
+			world_rank, token, world_size - 1);
+	}
 
 	/// Finalize the MPI environment. ///
 	MPI_Finalize();
