@@ -42,7 +42,10 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 	for (auto& o : *dataset) {	/// find the distnace of each point in dataset with point p
 		dist = manhattanDist(o, *p);
 		//dist = euclideanDist(o, *p);
-		o.dist = dist;
+		if (dist != 0)
+			o.dist = dist;
+		else
+			o.dist = 10000000000;
 	}
 
 	sortDataset(dataset);
@@ -183,21 +186,6 @@ void readCSV(vector<Point> *dataset, char* file_name) {
 		p.x = x * 100;		p.y = y * 100;
 		p.id = id++;		p.flag = false;
 		(*dataset).push_back(p);
-
-		Point p1;
-		p1.x = x * 100 + 50;		p1.y = y * 100 + 50;
-		p1.id = id++;		p1.flag = false;
-		(*dataset).push_back(p1);
-
-		Point p2;
-		p2.x = x * 200 + 40;		p2.y = y * 200 + 40;
-		p2.id = id++;		p2.flag = false;
-		(*dataset).push_back(p2);
-
-		Point p3;
-		p3.x = x * 200;		p3.y = y * 200;
-		p3.id = id++;		p3.flag = false;
-		(*dataset).push_back(p3);
 	}
 
 }
@@ -218,27 +206,24 @@ int main(int argc, char *argv[]) {
 	int K = 5;
 	vector<Point> dataset;
 	Point p;
-	p.x = 0;		p.y = 0;
+	p.x = -19;		p.y = -24;
 	p.flag = false;	p.id = 121212;
 
 	if (world_rank == 0) {
 		readCSV(&dataset, "F:\\Fatemeh\\UNI\\testMPI\\testMPI\\test.csv");
 
 		printf("dataset size: %d\n", dataset.size());
-
-		//p.x = 1 * dataset.at(2).x + 10;	p.y = -101 * dataset.at(2).y + 10;
-		//p.flag = false;						p.id = 1188;
 	}
 
-	//double lof = LOF(&dataset, &p, K);
-	//printf("\nLOF: %f\n", lof);
+	double lof = LOF(&dataset, &p, K);
+	printf("\nLOF: %f\n", lof);
 
-	//LOFBounds(&dataset, &p, K);
+	LOFBounds(&dataset, &p, K);
 	
 
 	printf("Hello world from rank %d out of %d processors\n", world_rank, world_size);
 
-	//system("pause");
+	system("pause");
 
 	/// Finalize the MPI environment. ///
 	MPI_Finalize();
