@@ -8,8 +8,6 @@
 
 //#include "gnuplot-iostream.h"
 
-int level = 0;
-
 using namespace std;
 
 struct Point {
@@ -20,7 +18,29 @@ struct Point {
 	int neighborhood_size;
 };
 
+void readCSV(vector<Point> *dataset, char* file_name) {
+	//// read .csv file ////
+	ifstream  data;
+	data.open(file_name, ios::in);
 
+	vector<vector<string> > dataList;
+	string line;
+	int id = 0;
+	while (getline(data, line)) {
+
+		string token = line.substr(0, line.find(','));
+		line.erase(0, line.find(',') + 1);
+
+		double x = atof(token.c_str());		double y = atof(line.c_str());
+
+		Point p;
+		p.x = x * 100;		p.y = y * 100;
+		p.id = id++;		p.flag = false;
+		p.neighborhood_size = 0;
+		(*dataset).push_back(p);
+	}
+
+}
 
 bool compareTwoPoints(Point a, Point b) {
 	return a.dist < b.dist;
@@ -40,15 +60,13 @@ double euclideanDist(Point a, Point b) {
 
 double kDistanse(vector<Point> *dataset, Point *p, int K) {
 	/// compute-intensive step of the LOF algorithm ///
-	if (!p) {
-		printf("null p");
-	}
-	else {
-		printf("not null - level: %d - id: %d\n",level, p->id);
+	
+	if (p->flag) {	/// k-distance for this point has been already calculated
+		printf("k-distance for this point(%d) has been already calculated\n", p->id);
+		return p->kDist;
 	}
 
-	if (p->flag)	/// k-distance for this point has been already calculated
-		return p->kDist;
+	p->flag = true;
 
 	double dist;
 
@@ -57,7 +75,6 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 		//dist = euclideanDist(o, *p);
 		o.dist = dist;
 	}
-
 	sortDataset(dataset);
 
 	double kDist = dataset->at(K - 1).dist;
@@ -68,19 +85,19 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 		p->neighborhood_size++;
 	}
 
-	int ii = K;
-	while (dataset->at(ii).dist == kDist && ii < dataset->size()) {
-		p->neighborhood[ii] = &(dataset->at(ii));
+	int i = K;
+	while (dataset->at(i).dist == kDist && i < dataset->size()) {
+		p->neighborhood[i] = &(dataset->at(i));
 		p->neighborhood_size++;
-		ii++;
+		i++;
 	}
 
-	//printf("p(%d) neighbors:\n\n", p->id);
-	//for (auto o : p->neighborhood) {
-	//printf("%d\n", o.id);
-	//}
-
-	p->flag = true;
+	/*printf("list of p(%d) neighbors (#:%d) :\n", p->id, p->neighborhood_size);
+	for (int i = 0; i < p->neighborhood_size; i++) {
+		printf("\t %d", p->neighborhood[i]->id);
+	}
+	printf("\n");
+	*/
 
 	return kDist;
 }
@@ -95,16 +112,19 @@ double reachDist(Point p, Point o) {
 }
 
 double localReachabilityDensity(vector<Point> *dataset, Point *p, int K) {
+	printf("localReachabilityDensity for p id %d\n", p->id);
 
 	double sigmaRD = 0;
-
+	int i = 0;
 	double rd;
-	for (auto& o : p->neighborhood) {
-		rd = reachDist(*p, *o);
+
+	for (int i = 0; i < p->neighborhood_size; i++) {
+		printf("localReachabilityDensity:\tp id: %d - nei id: %d\n", p->id, p->neighborhood[i]->id);
+		rd = reachDist(*p, *(p->neighborhood[i]));
 		sigmaRD += rd;
 	}
-
-	printf("LRD: sigmaRD: %f, size: %d, sigmaRD/size: %f, 1/(sigmaRD/size): %f\n",
+	
+	printf("localReachabilityDensity:\n\tLRD: sigmaRD: %f,   size: %d,   sigmaRD/size: %f,   1/(sigmaRD/size): %f\n",
 		sigmaRD, p->neighborhood_size, (sigmaRD / p->neighborhood_size),
 		1.0 / (sigmaRD / p->neighborhood_size));
 
@@ -114,27 +134,25 @@ double localReachabilityDensity(vector<Point> *dataset, Point *p, int K) {
 double LOF(vector<Point> *dataset, Point *p, int K) {
 	//// for objects deep inside a cluster, their LOFs are close to 1 ////
 
-	kDistanse(dataset, p, K);			/// k-distance for p
-	printf("p neis: %d\n", p->neighborhood_size);
-
-	for (auto& n1 : p->neighborhood) {	/// k-distance for p's neighbors
-		kDistanse(dataset, n1, K);
-		printf("p neis neis: %d\n", n1->neighborhood_size);
-
+	kDistanse(dataset, p, K);							/// k-distance for p
+	
+	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for p's neighbors
+		kDistanse(dataset, p->neighborhood[i], K);
 	}
 
-	for (auto& n2 : p->neighborhood) {	/// k-distance for neighbors of p's neighbors
-		for (auto& n1 : n2->neighborhood) {
-			kDistanse(dataset, n1, K);
+	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for neighbors of p's neighbors
+		for (int j = 0; j < p->neighborhood[i]->neighborhood_size; j++) {
+			kDistanse(dataset, p->neighborhood[i]->neighborhood[j], K);
 		}
 	}
 
-
 	double lrdP = localReachabilityDensity(dataset, p, K);
 
+	int i = 0;
 	double sigmaLRDneigh = 0;
-	for (auto& o : p->neighborhood) {
-		sigmaLRDneigh += localReachabilityDensity(dataset, o, K);
+
+	for (int i = 0; i < p->neighborhood_size; i++) {
+		sigmaLRDneigh += localReachabilityDensity(dataset, p->neighborhood[i], K);
 	}
 
 	printf("\nLOF: sigmaLRDneigh: %f\n", sigmaLRDneigh);
@@ -150,7 +168,6 @@ void LOFBounds(vector<Point> *dataset, Point *p, int K) {
 		for (auto& n2 : n3->neighborhood) {
 			for (auto& n1 : n2->neighborhood) {
 				kDistanse(dataset, n1, K);
-				level += 2;
 			}
 		}
 	}
@@ -183,30 +200,6 @@ void LOFBounds(vector<Point> *dataset, Point *p, int K) {
 }
 
 
-void readCSV(vector<Point> *dataset, char* file_name) {
-	//// read .csv file ////
-	ifstream  data;
-	data.open(file_name, ios::in);
-
-	vector<vector<string> > dataList;
-	string line;
-	int id = 0;
-	while (getline(data, line)) {
-
-		string token = line.substr(0, line.find(','));
-		line.erase(0, line.find(',') + 1);
-
-		double x = atof(token.c_str());		double y = atof(line.c_str());
-
-		Point p;
-		p.x = x * 100;		p.y = y * 100;
-		p.id = id++;		p.flag = false;
-		p.neighborhood_size = 0;
-		(*dataset).push_back(p);
-	}
-
-}
-
 
 int main(int argc, char *argv[]) {
 
@@ -226,17 +219,7 @@ int main(int argc, char *argv[]) {
 
 	int K = 5;
 	vector<Point> dataset;
-	Point p;
-
-	p.x = 10.55;
-	p.y = -204.61;
-	p.flag = false;
-	p.id = 1188;
-	p.neighborhood_size = 0;
-
-	readCSV(&dataset, "F:\\Fatemeh\\UNI\\testMPI\\testMPI\\test.csv");
-	printf("dataset size: %d\n", dataset.size());
-
+	
 	/*
 	int dataset_size;
 	if (world_rank == 0) {
@@ -268,10 +251,41 @@ int main(int argc, char *argv[]) {
 	}
 	*/
 
-	double lof = LOF(&dataset, &p, K);
-	printf("\nrank: %d - LOF: %f\n", world_rank, lof);
+	Point p;
 
-	LOFBounds(&dataset, &p, K);
+	p.x = 10.55;
+	p.y = -204.61;
+	p.flag = false;
+	p.id = 1188;
+	p.neighborhood_size = 0;
+
+	readCSV(&dataset, "F:\\Fatemeh\\UNI\\testMPI\\testMPI\\test.csv");
+	printf("dataset size: %d\n", dataset.size());
+
+	double kdist = kDistanse(&dataset, &p, K);
+	printf("kdist for p(%d): %f - %f\n", p.id, kdist, p.kDist);		
+
+	for (int i = 0; i < p.neighborhood_size; i++) {	/// k-distance for p's neighbors
+		printf("1 - %d\n", p.neighborhood[i]->id);
+		kdist = kDistanse(&dataset, p.neighborhood[i], K);
+		printf("2 - %d\n", p.neighborhood[i]->id);
+//		printf("kdist for p(%d): %f - %f\n", p.neighborhood[i]->id, kdist, p.neighborhood[i]->kDist);
+	}
+
+	/*
+	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for neighbors of p's neighbors
+		for (int j = 0; j < p->neighborhood[i]->neighborhood_size; j++) {
+			kDistanse(dataset, p->neighborhood[i]->neighborhood[j], K);
+		}
+	}
+	*/
+
+
+	//double lof = LOF(&dataset, &p, K);
+	//printf("\nrank: %d - LOF: %f\n", world_rank, lof);
+
+	//LOFBounds(&dataset, &p, K);
+
 
 	printf("Hello world from rank %d out of %d processors\n", world_rank, world_size);
 
