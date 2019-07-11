@@ -219,7 +219,7 @@ void LOFBounds(vector<Point> *dataset, vector<Point> *dataset_copy, Point *p, in
 	printf("\nmin: %f, max: %f\n", directMin / indirectMax, directMax / indirectMin);
 }
 
-void parallel_kDistance(vector<Point> *dataset, vector<Point> *dataset_copy,
+void parallel_kDistance(vector<Point> *dataset_copy,
 	Point *p, int K, int rank, int world_size) {
 	vector<Point> result, final_res;
 
@@ -235,7 +235,7 @@ void parallel_kDistance(vector<Point> *dataset, vector<Point> *dataset_copy,
 	sortDataset(dataset_copy);
 
 	int i;
-	for (i = 0; i < K && i < dataset_copy->size(); i++) {
+	for (i = 0; i < K+1 && i < dataset_copy->size(); i++) {
 		result.push_back(dataset_copy->at(i));
 	}
 
@@ -248,9 +248,9 @@ void parallel_kDistance(vector<Point> *dataset, vector<Point> *dataset_copy,
 	*/
 	int res_size = result.size() * sizeof(Point);
 	printf("rank: %d, res_size: %d\n\n", rank, result.size());
-	
+
 	int *recvcounts = NULL;
-	int * offset = NULL; 
+	int * offset = NULL;
 	if (rank == 0) {
 		recvcounts = (int*)malloc(world_size * sizeof(int));
 		offset = (int*)malloc(world_size * sizeof(int));
@@ -261,62 +261,116 @@ void parallel_kDistance(vector<Point> *dataset, vector<Point> *dataset_copy,
 		offset[0] = 0;
 		for (int i = 1; i < world_size; i++) {
 			offset[i] = offset[i - 1] + recvcounts[i - 1] + 1;
-			printf("offset %d: %d --- %d\n", i, offset[i-1], recvcounts[i-1]);
+			printf("offset %d: %d --- %d\n", i, offset[i - 1], recvcounts[i - 1]);
 		}
 		int final_res_size = (offset[world_size - 1] + recvcounts[world_size - 1]) / sizeof(Point);
-		printf("offset i-1: %d, recvciont i-1: %d, final res size: %d\n", offset[world_size - 1] ,
+		printf("offset i-1: %d, recvciont i-1: %d, final res size: %d\n", offset[world_size - 1],
 			recvcounts[world_size - 1], final_res_size);
 		final_res.resize(final_res_size);
 	}
 
-	MPI_Gather((void*)result.data(),result.size()*sizeof(Point),MPI_BYTE, 
-		(void*)final_res.data(), result.size() * sizeof(Point), MPI_BYTE,0, MPI_COMM_WORLD);
+	MPI_Gather((void*)result.data(), result.size() * sizeof(Point), MPI_BYTE,
+		(void*)final_res.data(), result.size() * sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-//	MPI_Gatherv((void*)result.data(), result.size() * sizeof(Point), MPI_BYTE,
-	//	(void*)final_res.data(), recvcounts, offset, MPI_BYTE, 0, MPI_COMM_WORLD);
-	
+	//	MPI_Gatherv((void*)result.data(), result.size() * sizeof(Point), MPI_BYTE,
+		//	(void*)final_res.data(), recvcounts, offset, MPI_BYTE, 0, MPI_COMM_WORLD);
+
 	if (rank == 0) {
 		sortDataset(&final_res);
 		i = 0;
+		printf("parallel NEIGHBOR ID");
 		for (i = 0; i < K && i < final_res.size(); i++) {
 			p->neighborhood[i] = final_res.at(i).id;
+			printf(" %d - ", p->neighborhood[i]);
 			p->neighborhood_size++;
 		}
 
 		lastDist = final_res.at(i - 1).dist;
 		while (dataset_copy->at(i).dist == lastDist && i < dataset_copy->size()) {
 			p->neighborhood[i] = final_res.at(i).id;
+			printf(" %d - ", p->neighborhood[i]);
 			p->neighborhood_size++;
 			i++;
 		}
+		printf("\n");
 
 		p->dist = lastDist;
-		printf("____________lastDist: %f", lastDist);
+		if (rank == 0)
+			printf("%d____________lastDist: %f\n", p->id, lastDist);
 		p->flag = true;
 	}
-	
+	MPI_Barrier(MPI_COMM_WORLD);
+}
 
+void all_kDistance(vector<Point> *dataset, Point *p, int K, int rank, int world_size) {
+	vector<Point> sub_dataset;
+
+	int sub_dataset_size;
+	if (rank == 0) {
+		sub_dataset_size = dataset->size() / world_size;
+	}
+	MPI_Bcast(&sub_dataset_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	sub_dataset.resize(sub_dataset_size);
+
+	MPI_Scatter((void*)dataset->data(), sub_dataset_size * sizeof(Point), MPI_BYTE, (void*)sub_dataset.data(),
+		sub_dataset_size * sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
+
+	printf("rank: %d, sub: %f - %f\n", rank, sub_dataset.at(0).x, sub_dataset.at(0).y);
+
+	vector<Point> sub_copy;
+	sub_copy = sub_dataset;
+
+	parallel_kDistance(&sub_copy, p, K, rank, world_size);
+
+	int neighborhood_size;
+	if (rank == 0)
+		neighborhood_size = p->neighborhood_size;
+	MPI_Bcast(&neighborhood_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	for (int i = 0; i < neighborhood_size; i++) {	/// k-distance for p's neighbors
+		Point q;
+		if (rank == 0) {
+			q.flag = false;
+			q.neighborhood_size = 0;
+			q.id = (dataset->at(p->neighborhood[i])).id;
+			q.x = (dataset->at(p->neighborhood[i])).x;
+			q.y = (dataset->at(p->neighborhood[i])).y;
+			//printf("qx: %f, qy: %f\n", q.x, q.y);
+		}
+		MPI_Bcast(&q, sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
+
+		parallel_kDistance(&sub_copy, &q, K, rank, world_size);
+	}
+	printf("\n\n");
 
 	/*
-	kDistanse(dataset_copy, p, K);						/// k-distance for p
+	for (int i = 0; i < neighborhood_size; i++) {	/// k-distance for neighbors of p's neighbors
+		int neighborhood_size2;
+		if (rank == 0) {
+			neighborhood_size2 = dataset->at(p->neighborhood[i]).neighborhood_size;
+			printf("\t\tneighborhood_size2 : %d\n", neighborhood_size2);
+		}
+		MPI_Bcast(&neighborhood_size2, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-	printf("p(%d): ", p->id);
-	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for p's neighbors
-		printf("%d\t", p->neighborhood[i]);
-		kDistanse(dataset_copy, &(dataset->at(p->neighborhood[i])), K);
-	}
-	printf("\n");
+		for (int j = 0; j < neighborhood_size2; j++) {
+			Point q;
+			if (rank == 0) {
+				q.flag = false;
+				q.neighborhood_size = 0;
+				q.id = (dataset->at(dataset->at(p->neighborhood[i]).neighborhood[j])).id;
+				q.x = (dataset->at(dataset->at(p->neighborhood[i]).neighborhood[j])).x;
+				q.y = (dataset->at(dataset->at(p->neighborhood[i]).neighborhood[j])).y;
+			}
+			MPI_Bcast(&q, sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for neighbors of p's neighbors
-		for (int j = 0; j < dataset->at(p->neighborhood[i]).neighborhood_size; j++) {
-			kDistanse(dataset_copy, &(dataset->at(dataset->at(p->neighborhood[i]).neighborhood[j])), K);
+			parallel_kDistance(&sub_copy, &q, K, rank, world_size);
 		}
 	}
 	*/
 }
 
 int main(int argc, char *argv[]) {
-
 	/// Initialize the MPI environment ///
 	MPI_Init(&argc, &argv);
 
@@ -329,60 +383,72 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
 	MPI_Status stat;
-	
-//	double in_x = atof(argv[1]);
-//	double in_y = atof(argv[2]);
+
+	//	double in_x = atof(argv[1]);
+	//	double in_y = atof(argv[2]);
 
 	int K = 5;
-	vector<Point> dataset, sub_dataset;
+	vector<Point> dataset;
 
-//	readCSV(&dataset, "F:\\Fatemeh\\UNI\\testMPI\\testMPI\\test.csv");
-//	printf("dataset size: %d\n", dataset.size());
-
-	int sub_dataset_size;
 	if (world_rank == 0) {
 		readCSV(&dataset, "F:\\Fatemeh\\UNI\\testMPI\\testMPI\\test.csv");
 		printf("dataset size: %d\n", dataset.size());
-		sub_dataset_size = dataset.size() / world_size;
 	}
 
-	MPI_Bcast(&sub_dataset_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	//MPI_Bcast(&sub_dataset_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-	sub_dataset.resize(sub_dataset_size);
+	//sub_dataset.resize(sub_dataset_size);
 
-	//MPI_Bcast((void*)dataset.data(), dataset_size * sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
-
-	MPI_Scatter((void*)dataset.data(), sub_dataset_size * sizeof(Point), MPI_BYTE, (void*)sub_dataset.data(),
-		sub_dataset_size * sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
-
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	printf("rank: %d, sub: %f - %f\n", world_rank, sub_dataset.at(0).x, sub_dataset.at(0).y);
-
+	//MPI_Scatter((void*)dataset.data(), sub_dataset_size * sizeof(Point), MPI_BYTE, (void*)sub_dataset.data(),
+		//sub_dataset_size * sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
 
 	Point p;
-
 	// p.x = in_x;	p.y = in_y;
-	p.x = 80.55;	p.y = -129.61;	
-
+	p.x = 80.55;	p.y = -129.61;
 	p.flag = false;
 	p.id = 99999;
 	p.neighborhood_size = 0;
-	
-	vector<Point> copy;
-	copy = sub_dataset;
-	
-	parallel_kDistance(&sub_dataset, &copy, &p, K, world_rank, world_size);
-	if(world_rank == 0)
-	printf("rank: %d, para dist: %f\n", world_rank, p.dist);
 
-	p.flag = false;
-	double dist = kDistanse(&copy, &p, K);
-	if (world_rank == 0)
-		printf("rank: %d, seri dist: %f", world_rank, dist);
+	all_kDistance(&dataset, &p, K, world_rank, world_size);
 	
-	//double lof = LOF(&dataset, &sub_dataset, &p, K);
-//	printf("\nrank: %d ------ LOF: %f\n", world_rank, lof);
+	/*if (world_rank == 0) {
+
+		printf("p(%d): ", p.id);
+		for (int i = 0; i < p.neighborhood_size; i++) {	/// k-distance for p's neighbors
+			printf("%d : %f\n", p.neighborhood[i], dataset.at(p.neighborhood[i]).dist);
+
+		}
+		printf("\n");
+
+		for (int i = 0; i < p.neighborhood_size; i++) {	/// k-distance for neighbors of p's neighbors
+			for (int j = 0; j < dataset.at(p.neighborhood[i]).neighborhood_size; j++) {
+				printf("%d : %f\n", dataset.at(p.neighborhood[i]).neighborhood[j],
+					dataset.at(dataset.at(p.neighborhood[i]).neighborhood[j]).dist);
+			}
+		}
+	}
+
+
+	/*
+	if (world_rank == 0) {
+		copy = dataset;
+		p.flag = false;
+		p.neighborhood_size = 0;
+
+		double dist = kDistanse(&copy, &p, K);
+
+		printf("serial NEIGHBOR ID: ");
+		for (int i = 0; i < p.neighborhood_size; i++)
+			printf(" %d - ", p.neighborhood[i]);
+		printf("rank: %d, seri dist: %f", world_rank, dist);
+	}
+	
+
+	if (world_rank == 0) {
+		double lof = LOF(&dataset, &copy, &p, K);
+		printf("\nrank: %d ------ LOF: %f\n", world_rank, lof);
+	}
+	*/
 
 	// LOFBounds(&dataset, &sub_dataset, &p, K);
 
