@@ -383,11 +383,11 @@ int main(int argc, char *argv[]) {
 	//	double in_x = atof(argv[1]);
 	//	double in_y = atof(argv[2]);
 
-	int K = 8;
+	int K = 5;
 	vector<Point> dataset, copy;
 
 	if (world_rank == 0) {
-		readCSV(&dataset, "F:\\Fatemeh\\UNI\\testMPI\\testMPI\\test.csv");
+		readCSV(&dataset, "F:\\Fatemeh\\UNI\\BScFinal\\Project\\BSc-Final\\Code\\LOF_SmartHome\\LOF_SmartHome\\Power.csv");
 		printf("dataset size: %d\n", dataset.size());
 	}
 
