@@ -166,19 +166,20 @@ void parallel_kDistance(vector<Point> *dataset_copy,
 	sortDataset(dataset_copy);
 
 	int i;
-	for (i = 0; i < K + 2 && i < dataset_copy->size(); i++) {
+	for (i = 0; i < 2 * K && i < dataset_copy->size(); i++) {
 		result.push_back(dataset_copy->at(i));
 	}
 
 	double lastDist = result.back().dist;
+
 	/*
 	while (dataset_copy->at(i).dist == lastDist && i < dataset_copy->size()) {
 	result.push_back(dataset_copy->at(i));
 	i++;
 	}
 	*/
+
 	int res_size = result.size() * sizeof(Point);
-	//printf("rank: %d, res_size: %d\n\n", rank, result.size());
 
 	int *recvcounts = NULL;
 	int * offset = NULL;
@@ -192,11 +193,8 @@ void parallel_kDistance(vector<Point> *dataset_copy,
 		offset[0] = 0;
 		for (int i = 1; i < world_size; i++) {
 			offset[i] = offset[i - 1] + recvcounts[i - 1] + 1;
-			//	printf("offset %d: %d --- %d\n", i, offset[i - 1], recvcounts[i - 1]);
 		}
 		int final_res_size = (offset[world_size - 1] + recvcounts[world_size - 1]) / sizeof(Point);
-		//printf("offset i-1: %d, recvciont i-1: %d, final res size: %d\n", offset[world_size - 1],
-		//	recvcounts[world_size - 1], final_res_size);
 		final_res.resize(final_res_size);
 	}
 
@@ -209,25 +207,20 @@ void parallel_kDistance(vector<Point> *dataset_copy,
 	if (rank == 0) {
 		sortDataset(&final_res);
 		i = 0;
-		//	printf("parallel NEIGHBOR ID");
 		for (i = 0; i < K && i < final_res.size(); i++) {
 			p->neighborhood[i] = final_res.at(i).id;
-			//	printf(" %d - ", p->neighborhood[i]);
 			p->neighborhood_size++;
 		}
 
 		lastDist = final_res.at(i - 1).dist;
 		while (dataset_copy->at(i).dist == lastDist && i < dataset_copy->size()) {
 			p->neighborhood[i] = final_res.at(i).id;
-			//	printf(" %d - ", p->neighborhood[i]);
 			p->neighborhood_size++;
 			i++;
 		}
-		printf("\n");
 
 		p->dist = lastDist;
 		if (rank == 0)
-			//	printf("nei_size: %d   -  id: %d _________lastDist: %f\n", p->neighborhood_size, p->id, lastDist);
 			p->flag = true;
 	}
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -247,8 +240,6 @@ void all_kDistance(vector<Point> *dataset, Point *p, int K, int rank, int world_
 	MPI_Scatter((void*)dataset->data(), sub_dataset_size * sizeof(Point), MPI_BYTE, (void*)sub_dataset.data(),
 		sub_dataset_size * sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-	//printf("rank: %d, sub: %f - %f\n", rank, sub_dataset.at(0).x, sub_dataset.at(0).y);
-
 	vector<Point> sub_copy;
 	sub_copy = sub_dataset;
 
@@ -267,7 +258,6 @@ void all_kDistance(vector<Point> *dataset, Point *p, int K, int rank, int world_
 			q.id = (dataset->at(p->neighborhood[i])).id;
 			q.x = (dataset->at(p->neighborhood[i])).x;
 			q.y = (dataset->at(p->neighborhood[i])).y;
-			//printf("qx: %f, qy: %f\n", q.x, q.y);
 		}
 		MPI_Bcast(&q, sizeof(Point), MPI_BYTE, 0, MPI_COMM_WORLD);
 
@@ -280,14 +270,12 @@ void all_kDistance(vector<Point> *dataset, Point *p, int K, int rank, int world_
 			}
 		}
 	}
-	printf("\n");
 
 
 	for (int i = 0; i < neighborhood_size; i++) {	/// k-distance for neighbors of p's neighbors
 		int neighborhood_size2;
 		if (rank == 0) {
 			neighborhood_size2 = dataset->at(p->neighborhood[i]).neighborhood_size;
-			printf("\t%d : neighborhood_size2 : %d\n", p->neighborhood[i], neighborhood_size2);
 		}
 		MPI_Bcast(&neighborhood_size2, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -313,7 +301,7 @@ void all_kDistance(vector<Point> *dataset, Point *p, int K, int rank, int world_
 
 		}
 	}
-	printf("%d are we done?\n", rank);
+
 }
 
 void LOFBounds(vector<Point> *dataset, vector<Point> *dataset_copy, Point *p, int K) {
@@ -361,13 +349,9 @@ double LOF(vector<Point> *dataset, vector<Point> *dataset_copy, Point *p, int K)
 	/*
 	kDistanse(dataset_copy, p, K);						/// k-distance for p
 
-	
-	printf("p(%d): ", p->id);
 	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for p's neighbors
-		printf("%d\t", p->neighborhood[i]);
 		kDistanse(dataset_copy, &(dataset->at(p->neighborhood[i])), K);
 	}
-	printf("\n");
 	*/
 
 	double lrdP = localReachabilityDensity(dataset, dataset_copy, p, K);
@@ -378,10 +362,6 @@ double LOF(vector<Point> *dataset, vector<Point> *dataset_copy, Point *p, int K)
 	for (int i = 0; i < p->neighborhood_size; i++) {
 		sigmaLRDneigh += localReachabilityDensity(dataset, dataset_copy, &(dataset->at(p->neighborhood[i])), K);
 	}
-
-//	printf("\nLOF: sigmaLRDneigh: %f\n", sigmaLRDneigh);
-//	printf("\nLOF: lrdP: %f\n", lrdP);
-//	printf("LOF: p.neigh.size: %f\n", (double)(p->neighborhood_size));
 
 	return  ((sigmaLRDneigh / lrdP) / (double)(p->neighborhood_size));
 }
@@ -403,7 +383,7 @@ int main(int argc, char *argv[]) {
 	//	double in_x = atof(argv[1]);
 	//	double in_y = atof(argv[2]);
 
-	int K = 5;
+	int K = 8;
 	vector<Point> dataset, copy;
 
 	if (world_rank == 0) {
