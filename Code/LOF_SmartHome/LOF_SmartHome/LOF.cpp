@@ -82,7 +82,7 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 	/// compute-intensive step of the LOF algorithm ///
 	
 	if (p->flag) {	/// k-distance for this point has been already calculated
-	//	printf("k-distance for this point(%d) has been already calculated\n", p->id);
+		//printf("k-distance for this point(%d) has been already calculated\n", p->id);
 		return p->kDist;
 	}
 
@@ -96,7 +96,7 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 		if (dist != 0)
 			o.dist = dist;
 		else
-			o.dist = 100000000000;
+			o.dist = 999999000000000;
 	}
 	sortDataset(dataset);
 
@@ -104,7 +104,7 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 	p->kDist = kDist;
 
 	for (int i = 0; i < K && i < dataset->size(); i++) {
-		p->neighborhood[i] = (dataset->at(K-1-i)).id;
+		p->neighborhood[i] = (dataset->at(i)).id;
 		p->neighborhood_size++;
 	}
 
@@ -114,6 +114,8 @@ double kDistanse(vector<Point> *dataset, Point *p, int K) {
 		p->neighborhood_size++;
 		i++;
 	}
+
+	//printf("(%d): %f\n", p->id, kDist);
 
 	return kDist;
 }
@@ -142,11 +144,11 @@ double localReachabilityDensity(vector<Point> *dataset, vector<Point> *dataset_c
 		sigmaRD += rd;
 	}
 	
-	printf("\tLRD: id: %d -  sigmaRD: %f,   size: %d,   sigmaRD/size: %f,   1/(sigmaRD/size): %f\n",
+	printf(" LRD: id: %d -  sigmaRD: %f,   size: %d,   sigmaRD/size: %f,   1/(sigmaRD/size): %f\n",
 		p->id, sigmaRD, p->neighborhood_size, (sigmaRD / p->neighborhood_size),
-		1.0 / (sigmaRD / p->neighborhood_size));
+		(double)(p->neighborhood_size) / sigmaRD);
 
-	return 1.0 / (sigmaRD / p->neighborhood_size);
+	return (double)(p->neighborhood_size) / sigmaRD;
 }
 
 
@@ -346,14 +348,6 @@ void LOFBounds(vector<Point> *dataset, vector<Point> *dataset_copy, Point *p, in
 double LOF(vector<Point> *dataset, vector<Point> *dataset_copy, Point *p, int K) {
 	//// for objects deep inside a cluster, their LOFs are close to 1 ////
 
-	/*
-	kDistanse(dataset_copy, p, K);						/// k-distance for p
-
-	for (int i = 0; i < p->neighborhood_size; i++) {	/// k-distance for p's neighbors
-		kDistanse(dataset_copy, &(dataset->at(p->neighborhood[i])), K);
-	}
-	*/
-
 	double lrdP = localReachabilityDensity(dataset, dataset_copy, p, K);
 
 	int i = 0;
@@ -383,8 +377,8 @@ int main(int argc, char *argv[]) {
 	//	double in_x = atof(argv[1]);
 	//	double in_y = atof(argv[2]);
 
-	int K = 5;
-	vector<Point> dataset, copy;
+	int K = 10;
+	vector<Point> dataset, dataset_copy;
 
 	if (world_rank == 0) {
 		readCSV(&dataset, "F:\\Fatemeh\\UNI\\BScFinal\\Project\\BSc-Final\\Code\\LOF_SmartHome\\LOF_SmartHome\\Power.csv");
@@ -393,22 +387,38 @@ int main(int argc, char *argv[]) {
 
 	Point p;
 	// p.x = in_x;	p.y = in_y;
-	p.x = 80.55;	p.y = -129.61;
+	p.x = 14791.07;
+	p.y = 1069.5352783203125;
 	p.flag = false;
 	p.id = 99999;
 	p.neighborhood_size = 0;
 
-	all_kDistance(&dataset, &p, K, world_rank, world_size);
+	dataset_copy = dataset;
+
+	kDistanse(&dataset_copy, &p, K);            /// k-distance for p
+
+	for (int i = 0; i < p.neighborhood_size; i++) {  /// k-distance for p's neighbors
+		kDistanse(&dataset_copy, &(dataset.at(p.neighborhood[i])), K);
+	}
+//	printf("*************\n");
+
+	for (int i = 0; i < p.neighborhood_size; i++) {  /// k-distance for neighbors of p's neighbors
+		for (int j = 0; j < dataset.at(p.neighborhood[i]).neighborhood_size; j++) {
+			kDistanse(&dataset_copy, &(dataset.at(dataset.at(p.neighborhood[i]).neighborhood[j])), K);
+		}
+		//printf("*************\n");
+	}
+	
+	//all_kDistance(&dataset, &p, K, world_rank, world_size);
 	
 	if (world_rank == 0) {
-		copy = dataset;
-		double lof = LOF(&dataset, &copy, &p, K);
+		double lof = LOF(&dataset, &dataset_copy, &p, K);
 		printf("%f", lof);
 	}
-
+	
 	//LOFBounds(&dataset, &copy, &p, K);
 
-	//system("pause");
+	system("pause");
 
 	/// Finalize the MPI environment. ///
 	MPI_Finalize();
